@@ -17,6 +17,7 @@
       claude-monitor
       claude-code-router
       gemini-cli-bin
+      flutter
     ];
 }
 
