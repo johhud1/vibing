@@ -18,6 +18,7 @@
       claude-code-router
       gemini-cli-bin
       flutter
+      nodejs_24
     ];
 }
 
