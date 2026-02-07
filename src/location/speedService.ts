@@ -89,6 +89,13 @@ export async function startForegroundWatch(
   );
 }
 
+export async function getCurrentSample(): Promise<SpeedSample> {
+  const location = await Location.getCurrentPositionAsync({
+    accuracy: Location.Accuracy.High,
+  });
+  return speedFromLocation(location);
+}
+
 export function resetSpeedHistory() {
   lastLocation = null;
 }

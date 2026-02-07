@@ -14,6 +14,7 @@ import { mapSpeedToVolume } from './src/mapping/speedMapping';
 import { ExponentialMovingAverage } from './src/smoothing/ema';
 import {
   ensureLocationPermissions,
+  getCurrentSample,
   resetSpeedHistory,
   startForegroundWatch,
 } from './src/location/speedService';
@@ -58,6 +59,21 @@ function AppContent() {
     resetSpeedHistory();
     smoothingRef.current.reset();
     setRunning(true);
+
+    try {
+      const initial = await getCurrentSample();
+      setDebug({
+        rawSpeedMps: initial.rawSpeedMps,
+        latitude: initial.latitude,
+        longitude: initial.longitude,
+        accuracy: initial.accuracy,
+        altitude: initial.altitude,
+        heading: initial.heading,
+        timestamp: initial.timestamp,
+      });
+    } catch {
+      // Ignore initial sample failures; watch updates will populate debug.
+    }
 
     await setAudioModeAsync({
       playsInSilentMode: true,
