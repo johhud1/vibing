@@ -1,14 +1,14 @@
 import { StatusBar } from 'expo-status-bar';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
   Pressable,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
-import { Audio } from 'expo-av';
+import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { mapSpeedToVolume } from './src/mapping/speedMapping';
 import { ExponentialMovingAverage } from './src/smoothing/ema';
@@ -19,34 +19,28 @@ import {
 } from './src/location/speedService';
 type RideMode = 'walk' | 'bike';
 
-export default function App() {
+const audioSource = require('./assets/track.wav');
+
+function AppContent() {
+  const insets = useSafeAreaInsets();
   const [running, setRunning] = useState(false);
   const [mode, setMode] = useState<RideMode>('bike');
   const [speedMps, setSpeedMps] = useState(0);
   const [volume, setVolume] = useState(0.2);
   const [minVolume, setMinVolume] = useState(0.2);
   const [maxVolume, setMaxVolume] = useState(0.9);
+  const player = useAudioPlayer(audioSource);
 
   const smoothingRef = useRef(new ExponentialMovingAverage(0.25));
   const lastUpdateRef = useRef(0);
   const watchRef = useRef<ReturnType<typeof startForegroundWatch> | null>(null);
-  const soundRef = useRef<Audio.Sound | null>(null);
 
   const maxSpeedMps = mode === 'walk' ? 2.5 : 9.0;
 
-  const ensureSound = async () => {
-    if (soundRef.current) return;
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
-    });
-    const { sound } = await Audio.Sound.createAsync(
-      require('./assets/track.wav'),
-      { isLooping: true, shouldPlay: false, volume: minVolume },
-    );
-    soundRef.current = sound;
-  };
+  useEffect(() => {
+    player.loop = true;
+    player.volume = minVolume;
+  }, [player, minVolume]);
 
   const start = async () => {
     if (running) return;
@@ -55,8 +49,11 @@ export default function App() {
     smoothingRef.current.reset();
     setRunning(true);
 
-    await ensureSound();
-    await soundRef.current?.playAsync();
+    await setAudioModeAsync({
+      playsInSilentMode: true,
+      interruptionMode: 'mixWithOthers',
+    });
+    player.play();
 
     watchRef.current = startForegroundWatch((sample) => {
       const smoothed = smoothingRef.current.update(sample.speedMps);
@@ -75,7 +72,7 @@ export default function App() {
         return;
       }
       lastUpdateRef.current = now;
-      soundRef.current?.setVolumeAsync(target);
+      player.volume = target;
     });
   };
 
@@ -85,13 +82,14 @@ export default function App() {
     const watch = await watchRef.current;
     watch?.remove();
     watchRef.current = null;
-    await soundRef.current?.stopAsync();
+    player.pause();
+    player.seekTo(0);
   };
 
   const speedMph = speedMps * 2.23694;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.header}>
         <Text style={styles.title}>Vibing</Text>
         <Text style={styles.subtitle}>Speed-based in-app volume</Text>
@@ -162,7 +160,15 @@ export default function App() {
         Note: This version controls only in-app audio playback, not other apps.
       </Text>
       <StatusBar style="auto" />
-    </SafeAreaView>
+    </View>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AppContent />
+    </SafeAreaProvider>
   );
 }
 
