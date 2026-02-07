@@ -7,7 +7,7 @@ import {
   Pressable,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
-import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
+import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { mapSpeedToVolume } from './src/mapping/speedMapping';
@@ -41,11 +41,16 @@ function AppContent() {
     timestamp: null as number | null,
   });
   const [debugError, setDebugError] = useState<string | null>(null);
+  const [devOverrideOn, setDevOverrideOn] = useState(false);
+  const [devSpeedMph, setDevSpeedMph] = useState(8);
   const player = useAudioPlayer(audioSource);
+  const status = useAudioPlayerStatus(player);
 
   const smoothingRef = useRef(new ExponentialMovingAverage(0.25));
   const lastUpdateRef = useRef(0);
   const watchRef = useRef<ReturnType<typeof startForegroundWatch> | null>(null);
+  const runningRef = useRef(false);
+  const shouldPlayRef = useRef(false);
 
   const maxSpeedMps = mode === 'walk' ? 2.5 : 9.0;
 
@@ -54,12 +59,31 @@ function AppContent() {
     player.volume = minVolume;
   }, [player, minVolume]);
 
+  useEffect(() => {
+    if (runningRef.current && shouldPlayRef.current && status.isLoaded) {
+      shouldPlayRef.current = false;
+      safePlayerAction(() => player.play());
+    }
+  }, [player, status.isLoaded]);
+
+  useEffect(() => {
+    return () => {
+      runningRef.current = false;
+      const watch = watchRef.current;
+      if (watch) {
+        watch.then((subscription) => subscription.remove()).catch(() => {});
+      }
+      safePlayerAction(() => player.pause());
+    };
+  }, [player]);
+
   const start = async () => {
     if (running) return;
     await ensureLocationPermissions();
     resetSpeedHistory();
     smoothingRef.current.reset();
     setRunning(true);
+    runningRef.current = true;
 
     await refreshDebug();
 
@@ -67,10 +91,17 @@ function AppContent() {
       playsInSilentMode: true,
       interruptionMode: 'mixWithOthers',
     });
-    player.play();
+    if (status.isLoaded) {
+      safePlayerAction(() => player.play());
+    } else {
+      shouldPlayRef.current = true;
+    }
 
     watchRef.current = startForegroundWatch((sample) => {
-      const smoothed = smoothingRef.current.update(sample.speedMps);
+      if (!runningRef.current) return;
+      if (!status.isLoaded) return;
+      const sourceSpeedMps = devOverrideOn ? devSpeedMph / 2.23694 : sample.speedMps;
+      const smoothed = smoothingRef.current.update(sourceSpeedMps);
       setSpeedMps(smoothed);
       setDebug((prev) => ({
         ...prev,
@@ -97,18 +128,22 @@ function AppContent() {
         return;
       }
       lastUpdateRef.current = now;
-      player.volume = target;
+      safePlayerAction(() => {
+        player.volume = target;
+      });
     });
   };
 
   const stop = async () => {
     if (!running) return;
     setRunning(false);
+    runningRef.current = false;
     const watch = await watchRef.current;
     watch?.remove();
     watchRef.current = null;
-    player.pause();
-    player.seekTo(0);
+    shouldPlayRef.current = false;
+    safePlayerAction(() => player.pause());
+    safePlayerAction(() => player.seekTo(0));
   };
 
   const refreshDebug = async () => {
@@ -211,6 +246,27 @@ function AppContent() {
       {showDev && (
         <View style={styles.devCard}>
           <Text style={styles.devTitle}>Developer mode</Text>
+          <View style={styles.devRow}>
+            <Text style={styles.devLine}>Override speed</Text>
+            <Pressable
+              style={[styles.devToggle, devOverrideOn && styles.devToggleActive]}
+              onPress={() => setDevOverrideOn((prev) => !prev)}
+            >
+              <Text style={styles.devToggleText}>{devOverrideOn ? 'On' : 'Off'}</Text>
+            </Pressable>
+          </View>
+          {devOverrideOn && (
+            <>
+              <Text style={styles.devLine}>Simulated speed: {devSpeedMph.toFixed(1)} mph</Text>
+              <Slider
+                value={devSpeedMph}
+                onValueChange={setDevSpeedMph}
+                minimumValue={0}
+                maximumValue={25}
+                step={0.1}
+              />
+            </>
+          )}
           <Text style={styles.devLine}>Raw speed: {debug.rawSpeedMps?.toFixed(2) ?? 'n/a'} m/s</Text>
           <Text style={styles.devLine}>
             Lat/Lng: {debug.latitude?.toFixed(5) ?? 'n/a'}, {debug.longitude?.toFixed(5) ?? 'n/a'}
@@ -242,6 +298,17 @@ export default function App() {
       <AppContent />
     </SafeAreaProvider>
   );
+}
+
+function safePlayerAction(action: () => void | Promise<void>) {
+  try {
+    const result = action();
+    if (result && typeof (result as Promise<void>).catch === 'function') {
+      (result as Promise<void>).catch(() => {});
+    }
+  } catch {
+    // Ignore invalid native object errors during fast refresh.
+  }
 }
 
 const styles = StyleSheet.create({
@@ -339,6 +406,27 @@ const styles = StyleSheet.create({
   devLine: {
     color: '#cbd5f5',
     marginBottom: 4,
+  },
+  devRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  devToggle: {
+    borderColor: '#94a3b8',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  devToggleActive: {
+    borderColor: '#38bdf8',
+    backgroundColor: 'rgba(56, 189, 248, 0.2)',
+  },
+  devToggleText: {
+    color: '#e2e8f0',
+    fontWeight: '600',
   },
   devError: {
     color: '#fca5a5',
