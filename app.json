@@ -16,6 +16,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.vibing",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "We use location to adjust system volume based on your speed.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "We use location to adjust system volume based on your speed.",
         "UIBackgroundModes": [
@@ -44,6 +45,12 @@
     },
     "plugins": [
       "./plugins/withSystemVolume"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "cbd47574-847b-4856-b48d-c1c02a792338"
+      }
+    },
+    "owner": "jhudson"
   }
 }
