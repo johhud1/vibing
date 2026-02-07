@@ -29,6 +29,16 @@ function AppContent() {
   const [volume, setVolume] = useState(0.2);
   const [minVolume, setMinVolume] = useState(0.2);
   const [maxVolume, setMaxVolume] = useState(0.9);
+  const [showDev, setShowDev] = useState(false);
+  const [debug, setDebug] = useState({
+    rawSpeedMps: null as number | null,
+    latitude: null as number | null,
+    longitude: null as number | null,
+    accuracy: null as number | null,
+    altitude: null as number | null,
+    heading: null as number | null,
+    timestamp: null as number | null,
+  });
   const player = useAudioPlayer(audioSource);
 
   const smoothingRef = useRef(new ExponentialMovingAverage(0.25));
@@ -58,6 +68,15 @@ function AppContent() {
     watchRef.current = startForegroundWatch((sample) => {
       const smoothed = smoothingRef.current.update(sample.speedMps);
       setSpeedMps(smoothed);
+      setDebug({
+        rawSpeedMps: sample.rawSpeedMps,
+        latitude: sample.latitude,
+        longitude: sample.longitude,
+        accuracy: sample.accuracy,
+        altitude: sample.altitude,
+        heading: sample.heading,
+        timestamp: sample.timestamp,
+      });
 
       const target = mapSpeedToVolume(smoothed, {
         minSpeedMps: 0,
@@ -156,6 +175,30 @@ function AppContent() {
         </Pressable>
       </View>
 
+      <View style={styles.section}>
+        <Pressable style={styles.secondaryButton} onPress={() => setShowDev((prev) => !prev)}>
+          <Text style={styles.secondaryButtonText}>
+            {showDev ? 'Hide developer mode' : 'Show developer mode'}
+          </Text>
+        </Pressable>
+      </View>
+
+      {showDev && (
+        <View style={styles.devCard}>
+          <Text style={styles.devTitle}>Developer mode</Text>
+          <Text style={styles.devLine}>Raw speed: {debug.rawSpeedMps?.toFixed(2) ?? 'n/a'} m/s</Text>
+          <Text style={styles.devLine}>
+            Lat/Lng: {debug.latitude?.toFixed(5) ?? 'n/a'}, {debug.longitude?.toFixed(5) ?? 'n/a'}
+          </Text>
+          <Text style={styles.devLine}>Accuracy: {debug.accuracy?.toFixed(1) ?? 'n/a'} m</Text>
+          <Text style={styles.devLine}>Altitude: {debug.altitude?.toFixed(1) ?? 'n/a'} m</Text>
+          <Text style={styles.devLine}>Heading: {debug.heading?.toFixed(1) ?? 'n/a'}°</Text>
+          <Text style={styles.devLine}>
+            Timestamp: {debug.timestamp ? new Date(debug.timestamp).toLocaleTimeString() : 'n/a'}
+          </Text>
+        </View>
+      )}
+
       <Text style={styles.note}>
         Note: This version controls only in-app audio playback, not other apps.
       </Text>
@@ -241,6 +284,32 @@ const styles = StyleSheet.create({
     color: '#0f172a',
     fontWeight: '700',
     fontSize: 16,
+  },
+  secondaryButton: {
+    borderColor: '#38bdf8',
+    borderWidth: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    color: '#38bdf8',
+    fontWeight: '600',
+  },
+  devCard: {
+    backgroundColor: '#0b1220',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
+  },
+  devTitle: {
+    color: '#e2e8f0',
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  devLine: {
+    color: '#cbd5f5',
+    marginBottom: 4,
   },
   note: {
     color: '#94a3b8',

@@ -2,7 +2,13 @@ import * as Location from 'expo-location';
 
 export type SpeedSample = {
   speedMps: number;
+  rawSpeedMps: number | null;
   timestamp: number;
+  latitude: number;
+  longitude: number;
+  accuracy: number | null;
+  altitude: number | null;
+  heading: number | null;
 };
 
 let lastLocation: Location.LocationObject | null = null;
@@ -12,12 +18,30 @@ export function speedFromLocation(location: Location.LocationObject): SpeedSampl
 
   if (rawSpeed > 0) {
     lastLocation = location;
-    return { speedMps: rawSpeed, timestamp: location.timestamp };
+    return {
+      speedMps: rawSpeed,
+      rawSpeedMps: rawSpeed,
+      timestamp: location.timestamp,
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+      accuracy: location.coords.accuracy ?? null,
+      altitude: location.coords.altitude ?? null,
+      heading: location.coords.heading ?? null,
+    };
   }
 
   if (!lastLocation) {
     lastLocation = location;
-    return { speedMps: 0, timestamp: location.timestamp };
+    return {
+      speedMps: 0,
+      rawSpeedMps: rawSpeed > 0 ? rawSpeed : null,
+      timestamp: location.timestamp,
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+      accuracy: location.coords.accuracy ?? null,
+      altitude: location.coords.altitude ?? null,
+      heading: location.coords.heading ?? null,
+    };
   }
 
   const distance = distanceBetweenMeters(
@@ -31,7 +55,16 @@ export function speedFromLocation(location: Location.LocationObject): SpeedSampl
   if (seconds <= 0) {
     return { speedMps: 0, timestamp: location.timestamp };
   }
-  return { speedMps: distance / seconds, timestamp: location.timestamp };
+  return {
+    speedMps: distance / seconds,
+    rawSpeedMps: rawSpeed > 0 ? rawSpeed : null,
+    timestamp: location.timestamp,
+    latitude: location.coords.latitude,
+    longitude: location.coords.longitude,
+    accuracy: location.coords.accuracy ?? null,
+    altitude: location.coords.altitude ?? null,
+    heading: location.coords.heading ?? null,
+  };
 }
 
 export async function ensureLocationPermissions() {
