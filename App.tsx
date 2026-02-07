@@ -40,6 +40,7 @@ function AppContent() {
     heading: null as number | null,
     timestamp: null as number | null,
   });
+  const [debugError, setDebugError] = useState<string | null>(null);
   const player = useAudioPlayer(audioSource);
 
   const smoothingRef = useRef(new ExponentialMovingAverage(0.25));
@@ -60,20 +61,7 @@ function AppContent() {
     smoothingRef.current.reset();
     setRunning(true);
 
-    try {
-      const initial = await getCurrentSample();
-      setDebug({
-        rawSpeedMps: initial.rawSpeedMps,
-        latitude: initial.latitude,
-        longitude: initial.longitude,
-        accuracy: initial.accuracy,
-        altitude: initial.altitude,
-        heading: initial.heading,
-        timestamp: initial.timestamp,
-      });
-    } catch {
-      // Ignore initial sample failures; watch updates will populate debug.
-    }
+    await refreshDebug();
 
     await setAudioModeAsync({
       playsInSilentMode: true,
@@ -84,7 +72,8 @@ function AppContent() {
     watchRef.current = startForegroundWatch((sample) => {
       const smoothed = smoothingRef.current.update(sample.speedMps);
       setSpeedMps(smoothed);
-      setDebug({
+      setDebug((prev) => ({
+        ...prev,
         rawSpeedMps: sample.rawSpeedMps,
         latitude: sample.latitude,
         longitude: sample.longitude,
@@ -92,7 +81,8 @@ function AppContent() {
         altitude: sample.altitude,
         heading: sample.heading,
         timestamp: sample.timestamp,
-      });
+      }));
+      setDebugError(null);
 
       const target = mapSpeedToVolume(smoothed, {
         minSpeedMps: 0,
@@ -119,6 +109,25 @@ function AppContent() {
     watchRef.current = null;
     player.pause();
     player.seekTo(0);
+  };
+
+  const refreshDebug = async () => {
+    try {
+      await ensureLocationPermissions();
+      const initial = await getCurrentSample();
+      setDebug({
+        rawSpeedMps: initial.rawSpeedMps,
+        latitude: initial.latitude,
+        longitude: initial.longitude,
+        accuracy: initial.accuracy,
+        altitude: initial.altitude,
+        heading: initial.heading,
+        timestamp: initial.timestamp,
+      });
+      setDebugError(null);
+    } catch (error) {
+      setDebugError(error instanceof Error ? error.message : 'Failed to read GPS');
+    }
   };
 
   const speedMph = speedMps * 2.23694;
@@ -212,6 +221,10 @@ function AppContent() {
           <Text style={styles.devLine}>
             Timestamp: {debug.timestamp ? new Date(debug.timestamp).toLocaleTimeString() : 'n/a'}
           </Text>
+          {debugError && <Text style={styles.devError}>GPS error: {debugError}</Text>}
+          <Pressable style={styles.devButton} onPress={refreshDebug}>
+            <Text style={styles.devButtonText}>Refresh GPS</Text>
+          </Pressable>
         </View>
       )}
 
@@ -326,6 +339,24 @@ const styles = StyleSheet.create({
   devLine: {
     color: '#cbd5f5',
     marginBottom: 4,
+  },
+  devError: {
+    color: '#fca5a5',
+    marginTop: 6,
+    marginBottom: 6,
+  },
+  devButton: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    borderColor: '#94a3b8',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  devButtonText: {
+    color: '#e2e8f0',
+    fontWeight: '600',
   },
   note: {
     color: '#94a3b8',
