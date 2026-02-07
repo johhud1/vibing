@@ -5,6 +5,7 @@ import {
   Text,
   View,
   Pressable,
+  ScrollView,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
@@ -169,124 +170,128 @@ function AppContent() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Vibing</Text>
-        <Text style={styles.subtitle}>Speed-based in-app volume</Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.speed}>{speedMph.toFixed(1)} mph</Text>
-        <Text style={styles.detail}>Target volume: {(volume * 100).toFixed(0)}%</Text>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Mode</Text>
-        <View style={styles.toggleRow}>
-          <Pressable
-            style={[styles.toggle, mode === 'walk' && styles.toggleActive]}
-            onPress={() => {
-              setMode('walk');
-            }}
-          >
-            <Text style={styles.toggleText}>Walk</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.toggle, mode === 'bike' && styles.toggleActive]}
-            onPress={() => {
-              setMode('bike');
-            }}
-          >
-            <Text style={styles.toggleText}>Bike</Text>
-          </Pressable>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Vibing</Text>
+          <Text style={styles.subtitle}>Speed-based in-app volume</Text>
         </View>
-      </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Min volume</Text>
-        <Slider
-          value={minVolume}
-          onValueChange={(value) => {
-            const clamped = Math.min(value, maxVolume);
-            setMinVolume(clamped);
-          }}
-          minimumValue={0}
-          maximumValue={1}
-          step={0.01}
-        />
-      </View>
+        <View style={styles.card}>
+          <Text style={styles.speed}>{speedMph.toFixed(1)} mph</Text>
+          <Text style={styles.detail}>Target volume: {(volume * 100).toFixed(0)}%</Text>
+        </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Max volume</Text>
-        <Slider
-          value={maxVolume}
-          onValueChange={(value) => {
-            const clamped = Math.max(value, minVolume);
-            setMaxVolume(clamped);
-          }}
-          minimumValue={0}
-          maximumValue={1}
-          step={0.01}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <Pressable style={styles.primaryButton} onPress={running ? stop : start}>
-          <Text style={styles.primaryButtonText}>{running ? 'Stop' : 'Start'}</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.section}>
-        <Pressable style={styles.secondaryButton} onPress={() => setShowDev((prev) => !prev)}>
-          <Text style={styles.secondaryButtonText}>
-            {showDev ? 'Hide developer mode' : 'Show developer mode'}
-          </Text>
-        </Pressable>
-      </View>
-
-      {showDev && (
-        <View style={styles.devCard}>
-          <Text style={styles.devTitle}>Developer mode</Text>
-          <View style={styles.devRow}>
-            <Text style={styles.devLine}>Override speed</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Mode</Text>
+          <View style={styles.toggleRow}>
             <Pressable
-              style={[styles.devToggle, devOverrideOn && styles.devToggleActive]}
-              onPress={() => setDevOverrideOn((prev) => !prev)}
+              style={[styles.toggle, mode === 'walk' && styles.toggleActive]}
+              onPress={() => {
+                setMode('walk');
+              }}
             >
-              <Text style={styles.devToggleText}>{devOverrideOn ? 'On' : 'Off'}</Text>
+              <Text style={styles.toggleText}>Walk</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.toggle, mode === 'bike' && styles.toggleActive]}
+              onPress={() => {
+                setMode('bike');
+              }}
+            >
+              <Text style={styles.toggleText}>Bike</Text>
             </Pressable>
           </View>
-          {devOverrideOn && (
-            <>
-              <Text style={styles.devLine}>Simulated speed: {devSpeedMph.toFixed(1)} mph</Text>
-              <Slider
-                value={devSpeedMph}
-                onValueChange={setDevSpeedMph}
-                minimumValue={0}
-                maximumValue={25}
-                step={0.1}
-              />
-            </>
-          )}
-          <Text style={styles.devLine}>Raw speed: {debug.rawSpeedMps?.toFixed(2) ?? 'n/a'} m/s</Text>
-          <Text style={styles.devLine}>
-            Lat/Lng: {debug.latitude?.toFixed(5) ?? 'n/a'}, {debug.longitude?.toFixed(5) ?? 'n/a'}
-          </Text>
-          <Text style={styles.devLine}>Accuracy: {debug.accuracy?.toFixed(1) ?? 'n/a'} m</Text>
-          <Text style={styles.devLine}>Altitude: {debug.altitude?.toFixed(1) ?? 'n/a'} m</Text>
-          <Text style={styles.devLine}>Heading: {debug.heading?.toFixed(1) ?? 'n/a'}°</Text>
-          <Text style={styles.devLine}>
-            Timestamp: {debug.timestamp ? new Date(debug.timestamp).toLocaleTimeString() : 'n/a'}
-          </Text>
-          {debugError && <Text style={styles.devError}>GPS error: {debugError}</Text>}
-          <Pressable style={styles.devButton} onPress={refreshDebug}>
-            <Text style={styles.devButtonText}>Refresh GPS</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Min volume</Text>
+          <Slider
+            value={minVolume}
+            onValueChange={(value) => {
+              const clamped = Math.min(value, maxVolume);
+              setMinVolume(clamped);
+            }}
+            minimumValue={0}
+            maximumValue={1}
+            step={0.01}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Max volume</Text>
+          <Slider
+            value={maxVolume}
+            onValueChange={(value) => {
+              const clamped = Math.max(value, minVolume);
+              setMaxVolume(clamped);
+            }}
+            minimumValue={0}
+            maximumValue={1}
+            step={0.01}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Pressable style={styles.primaryButton} onPress={running ? stop : start}>
+            <Text style={styles.primaryButtonText}>{running ? 'Stop' : 'Start'}</Text>
           </Pressable>
         </View>
-      )}
 
-      <Text style={styles.note}>
-        Note: This version controls only in-app audio playback, not other apps.
-      </Text>
+        <View style={styles.section}>
+          <Pressable style={styles.secondaryButton} onPress={() => setShowDev((prev) => !prev)}>
+            <Text style={styles.secondaryButtonText}>
+              {showDev ? 'Hide developer mode' : 'Show developer mode'}
+            </Text>
+          </Pressable>
+        </View>
+
+        {showDev && (
+          <View style={styles.devCard}>
+            <Text style={styles.devTitle}>Developer mode</Text>
+            <View style={styles.devRow}>
+              <Text style={styles.devLine}>Override speed</Text>
+              <Pressable
+                style={[styles.devToggle, devOverrideOn && styles.devToggleActive]}
+                onPress={() => setDevOverrideOn((prev) => !prev)}
+              >
+                <Text style={styles.devToggleText}>{devOverrideOn ? 'On' : 'Off'}</Text>
+              </Pressable>
+            </View>
+            {devOverrideOn && (
+              <>
+                <Text style={styles.devLine}>Simulated speed: {devSpeedMph.toFixed(1)} mph</Text>
+                <Slider
+                  value={devSpeedMph}
+                  onValueChange={setDevSpeedMph}
+                  minimumValue={0}
+                  maximumValue={25}
+                  step={0.1}
+                />
+              </>
+            )}
+            <Text style={styles.devLine}>
+              Raw speed: {debug.rawSpeedMps?.toFixed(2) ?? 'n/a'} m/s
+            </Text>
+            <Text style={styles.devLine}>
+              Lat/Lng: {debug.latitude?.toFixed(5) ?? 'n/a'}, {debug.longitude?.toFixed(5) ?? 'n/a'}
+            </Text>
+            <Text style={styles.devLine}>Accuracy: {debug.accuracy?.toFixed(1) ?? 'n/a'} m</Text>
+            <Text style={styles.devLine}>Altitude: {debug.altitude?.toFixed(1) ?? 'n/a'} m</Text>
+            <Text style={styles.devLine}>Heading: {debug.heading?.toFixed(1) ?? 'n/a'}°</Text>
+            <Text style={styles.devLine}>
+              Timestamp: {debug.timestamp ? new Date(debug.timestamp).toLocaleTimeString() : 'n/a'}
+            </Text>
+            {debugError && <Text style={styles.devError}>GPS error: {debugError}</Text>}
+            <Pressable style={styles.devButton} onPress={refreshDebug}>
+              <Text style={styles.devButtonText}>Refresh GPS</Text>
+            </Pressable>
+          </View>
+        )}
+
+        <Text style={styles.note}>
+          Note: This version controls only in-app audio playback, not other apps.
+        </Text>
+      </ScrollView>
       <StatusBar style="auto" />
     </View>
   );
@@ -316,6 +321,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: '#0f172a',
+  },
+  scrollContent: {
+    paddingBottom: 24,
   },
   header: {
     marginTop: 10,
