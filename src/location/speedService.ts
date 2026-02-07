@@ -20,7 +20,12 @@ export function speedFromLocation(location: Location.LocationObject): SpeedSampl
     return { speedMps: 0, timestamp: location.timestamp };
   }
 
-  const distance = Location.getDistance(lastLocation.coords, location.coords);
+  const distance = distanceBetweenMeters(
+    lastLocation.coords.latitude,
+    lastLocation.coords.longitude,
+    location.coords.latitude,
+    location.coords.longitude,
+  );
   const seconds = Math.max((location.timestamp - lastLocation.timestamp) / 1000, 0);
   lastLocation = location;
   if (seconds <= 0) {
@@ -53,4 +58,22 @@ export async function startForegroundWatch(
 
 export function resetSpeedHistory() {
   lastLocation = null;
+}
+
+function distanceBetweenMeters(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+) {
+  const toRad = (value: number) => (value * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const earthRadiusMeters = 6371000;
+  return earthRadiusMeters * c;
 }
