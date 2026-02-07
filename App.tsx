@@ -6,24 +6,18 @@ import {
   Text,
   View,
   Pressable,
-  Platform,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
+import { Audio } from 'expo-av';
 
 import { mapSpeedToVolume } from './src/mapping/speedMapping';
 import { ExponentialMovingAverage } from './src/smoothing/ema';
-import { SystemVolume } from './src/native/SystemVolume';
 import {
   ensureLocationPermissions,
   resetSpeedHistory,
   startForegroundWatch,
 } from './src/location/speedService';
-import {
-  RideMode,
-  startBackgroundUpdates,
-  stopBackgroundUpdates,
-  updateRideSettings,
-} from './src/location/backgroundTask';
+type RideMode = 'walk' | 'bike';
 
 export default function App() {
   const [running, setRunning] = useState(false);
@@ -36,8 +30,23 @@ export default function App() {
   const smoothingRef = useRef(new ExponentialMovingAverage(0.25));
   const lastUpdateRef = useRef(0);
   const watchRef = useRef<ReturnType<typeof startForegroundWatch> | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
 
   const maxSpeedMps = mode === 'walk' ? 2.5 : 9.0;
+
+  const ensureSound = async () => {
+    if (soundRef.current) return;
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: false,
+    });
+    const { sound } = await Audio.Sound.createAsync(
+      require('./assets/track.wav'),
+      { isLooping: true, shouldPlay: false, volume: minVolume },
+    );
+    soundRef.current = sound;
+  };
 
   const start = async () => {
     if (running) return;
@@ -46,8 +55,8 @@ export default function App() {
     smoothingRef.current.reset();
     setRunning(true);
 
-    updateRideSettings({ mode, minVolume, maxVolume });
-    await startBackgroundUpdates();
+    await ensureSound();
+    await soundRef.current?.playAsync();
 
     watchRef.current = startForegroundWatch((sample) => {
       const smoothed = smoothingRef.current.update(sample.speedMps);
@@ -66,7 +75,7 @@ export default function App() {
         return;
       }
       lastUpdateRef.current = now;
-      SystemVolume.setVolume(target);
+      soundRef.current?.setVolumeAsync(target);
     });
   };
 
@@ -76,7 +85,7 @@ export default function App() {
     const watch = await watchRef.current;
     watch?.remove();
     watchRef.current = null;
-    await stopBackgroundUpdates();
+    await soundRef.current?.stopAsync();
   };
 
   const speedMph = speedMps * 2.23694;
@@ -85,7 +94,7 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Vibing</Text>
-        <Text style={styles.subtitle}>Speed-based system volume</Text>
+        <Text style={styles.subtitle}>Speed-based in-app volume</Text>
       </View>
 
       <View style={styles.card}>
@@ -100,7 +109,6 @@ export default function App() {
             style={[styles.toggle, mode === 'walk' && styles.toggleActive]}
             onPress={() => {
               setMode('walk');
-              updateRideSettings({ mode: 'walk' });
             }}
           >
             <Text style={styles.toggleText}>Walk</Text>
@@ -109,7 +117,6 @@ export default function App() {
             style={[styles.toggle, mode === 'bike' && styles.toggleActive]}
             onPress={() => {
               setMode('bike');
-              updateRideSettings({ mode: 'bike' });
             }}
           >
             <Text style={styles.toggleText}>Bike</Text>
@@ -124,7 +131,6 @@ export default function App() {
           onValueChange={(value) => {
             const clamped = Math.min(value, maxVolume);
             setMinVolume(clamped);
-            updateRideSettings({ minVolume: clamped });
           }}
           minimumValue={0}
           maximumValue={1}
@@ -139,7 +145,6 @@ export default function App() {
           onValueChange={(value) => {
             const clamped = Math.max(value, minVolume);
             setMaxVolume(clamped);
-            updateRideSettings({ maxVolume: clamped });
           }}
           minimumValue={0}
           maximumValue={1}
@@ -154,9 +159,7 @@ export default function App() {
       </View>
 
       <Text style={styles.note}>
-        {Platform.OS === 'ios'
-          ? 'Note: iOS system volume control is best-effort and may not affect other apps in all cases.'
-          : 'Note: Android system volume control should affect current media volume.'}
+        Note: This version controls only in-app audio playback, not other apps.
       </Text>
       <StatusBar style="auto" />
     </SafeAreaView>

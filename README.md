@@ -1,6 +1,6 @@
 ## Vibing (Expo + React Native)
 
-Speed-based system volume control for your phone. The app uses GPS speed to adjust the system media volume and runs in the background via Expo Task Manager.
+Speed-based in-app volume control for your phone. The app uses GPS speed to adjust the volume of music played inside the app.
 
 ### Quick start
 
@@ -10,34 +10,20 @@ Install dependencies:
 npm install
 ```
 
-Run the app locally (dev client required):
+Run the app locally:
 
 ```bash
-npx expo start --dev-client
+npx expo start
 ```
 
 ### Deploy to iOS without Xcode (EAS Build)
 
-This project uses a custom native module for system volume, so Expo Go will not work. Use EAS Build to create a dev client or production build.
-
-1) Login and configure EAS:
+If you want a TestFlight build without Xcode, use EAS Build (requires a paid Apple Developer account).
 
 ```bash
 npx eas login
 npx eas build:configure
-```
-
-2) Build dev clients:
-
-```bash
-npx eas build -p ios --profile development
-npx eas build -p android --profile development
-```
-
-3) Install the builds and run:
-
-```bash
-npx expo start --dev-client
+npx eas build -p ios --profile production
 ```
 
 ### CI (EAS Build)

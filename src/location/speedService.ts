@@ -34,11 +34,6 @@ export async function ensureLocationPermissions() {
   if (foreground.status !== 'granted') {
     throw new Error('Location permission denied');
   }
-
-  const background = await Location.requestBackgroundPermissionsAsync();
-  if (background.status !== 'granted') {
-    throw new Error('Background location permission denied');
-  }
 }
 
 export async function startForegroundWatch(
