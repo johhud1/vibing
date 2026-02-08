@@ -16,3 +16,4 @@
 - [x] Ship App (Installable Build)
   - [x] Push to GitHub
   - [x] Trigger EAS Build (Android) -> [Build Link](https://expo.dev/accounts/santa_claude/projects/pedal-amp/builds/37e5f96c-3376-463d-948e-c5352def5365)
+  - [ ] Run Local Android Build (`eas build --local`)
