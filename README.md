@@ -1,6 +1,6 @@
 ###  Ideas
 
-1. Speed/volume up and slow/volume down music based on speed of your phone ( bike tool )
+1. ~~Speed/volume up and slow/volume down music based on speed of your phone ( bike tool ) see pc_antigrav_pedal_amp and other branches~~
 1. when you open air horn app, play button will fire air horn.
 1. website that lists available audition calls for theater ( aggregating )
 1. simtower clone 
@@ -8,4 +8,5 @@
 1. reverse cookbook ( input ingredients, output recipes)
 1. mela but better ( cooking app ) 
 1. receipt scanning app that tracks prices of what you buy over time, helps you compare prices across stores. 
-1. stay in touch app - integrate with messages, email, signal, etc. You input how frequently you want to stay in touch; it keeps track of your interactions with people; and reminds you to reach out to them when you need to.
+1. stay in touch app - integrate with messages, email, signal, etc. You input how frequently you want to stay in touch; it keeps track of your interactions with people; and reminds you to reach out to them when you need to. (sub-feature: give you suggestions for what to talk about; mutual interests, events, etcs.)
+1. 
