@@ -52,6 +52,7 @@ function AppContent() {
   const watchRef = useRef<ReturnType<typeof startForegroundWatch> | null>(null);
   const runningRef = useRef(false);
   const shouldPlayRef = useRef(false);
+  const overrideTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const maxSpeedMps = mode === 'walk' ? 2.5 : 9.0;
 
@@ -74,9 +75,46 @@ function AppContent() {
       if (watch) {
         watch.then((subscription) => subscription.remove()).catch(() => {});
       }
+      if (overrideTimerRef.current) {
+        clearInterval(overrideTimerRef.current);
+        overrideTimerRef.current = null;
+      }
       safePlayerAction(() => player.pause());
     };
   }, [player]);
+
+  useEffect(() => {
+    if (overrideTimerRef.current) {
+      clearInterval(overrideTimerRef.current);
+      overrideTimerRef.current = null;
+    }
+
+    if (!running || !devOverrideOn) return;
+
+    overrideTimerRef.current = setInterval(() => {
+      if (!runningRef.current || !status.isLoaded) return;
+      const sourceSpeedMps = devSpeedMph / 2.23694;
+      const smoothed = smoothingRef.current.update(sourceSpeedMps);
+      setSpeedMps(smoothed);
+      const target = mapSpeedToVolume(smoothed, {
+        minSpeedMps: 0,
+        maxSpeedMps,
+        minVolume,
+        maxVolume,
+      });
+      setVolume(target);
+      safePlayerAction(() => {
+        player.volume = target;
+      });
+    }, 500);
+
+    return () => {
+      if (overrideTimerRef.current) {
+        clearInterval(overrideTimerRef.current);
+        overrideTimerRef.current = null;
+      }
+    };
+  }, [devOverrideOn, devSpeedMph, maxSpeedMps, maxVolume, minVolume, player, running, status.isLoaded]);
 
   const start = async () => {
     if (running) return;
