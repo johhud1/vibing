@@ -19,9 +19,10 @@ We have successfully refined the Settings UI and triggered an Android build for 
 The build is currently running on Expo Application Services (EAS). Once complete, you can download and install the APK directly to your Android device.
 
 **Build Status & Download:**
-[View on Expo Dashboard](https://expo.dev/accounts/santa_claude/projects/pedal-amp/builds/37e5f96c-3376-463d-948e-c5352def5365)
+[**Download APK**](https://expo.dev/artifacts/eas/7UmefXk1FRYAMggXhJM22x.apk)
 
 > [!NOTE]
+> Local build failed due to environment issues, but the remote build completed successfully.
 > This build uses the `preview` profile with `internal` distribution, which generates an installable APK (not an AAB for the store).
 
 ## Next Steps
