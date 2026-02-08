@@ -6,7 +6,6 @@ import {
   View,
   TouchableOpacity,
   Alert,
-  Vibration,
   Switch,
   ScrollView,
   Modal,
@@ -101,15 +100,7 @@ export default function App() {
       }
     }
 
-    // Vibrate when volume level changes
-    if (levelIndex !== lastVolumeLevel) {
-      setLastVolumeLevel(levelIndex);
-      if (levelIndex === 0) {
-        Vibration.vibrate([0, 200, 100, 200]);
-      } else if (levelIndex >= thresholds.length - 2) {
-        Vibration.vibrate(100);
-      }
-    }
+    setLastVolumeLevel(levelIndex);
   }, [getVolumeForSpeed, lastVolumeLevel, thresholds.length]);
 
   // Handle GPS location update
@@ -195,8 +186,7 @@ export default function App() {
   };
 
   const accuracyInfo = getAccuracyLabel(gpsAccuracy);
-  const displaySpeed = devMode ? manualSpeed : speed;
-
+  const displaySpeed = devMode ? manualSpeed : speed; // Render
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -281,15 +271,15 @@ export default function App() {
         <Text style={styles.status}>📍 Tracking active</Text>
       )}
       {devMode && (
-        <Text style={styles.status}>� Dev mode: Use slider to test</Text>
+        <Text style={styles.status}> Dev mode: Use slider to test</Text>
       )}
 
       {/* Settings Modal */}
-      <Modal visible={showSettings} animationType="slide" transparent>
+      <Modal visible={showSettings} animationType="fade" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Speed Thresholds</Text>
-            <Text style={styles.modalSubtitle}>Drag sliders to set speed for each level</Text>
+            <Text style={styles.modalTitle}>Volume Levels</Text>
+            <Text style={styles.modalSubtitle}>Drag sliders to set volume at each speed</Text>
 
             <ScrollView
               horizontal
@@ -299,20 +289,21 @@ export default function App() {
             >
               {thresholds.map((t, i) => (
                 <View key={i} style={styles.thresholdCard}>
-                  <Text style={styles.thresholdVolume}>{Math.round(t.volume * 100)}%</Text>
+                  <Text style={styles.thresholdSpeed}>{t.speed}+ mph</Text>
                   <View style={styles.sliderWrapper}>
                     <Slider
                       style={styles.verticalSlider}
                       minimumValue={0}
-                      maximumValue={20}
-                      value={t.speed}
-                      onValueChange={(value) => updateThreshold(i, 'speed', Math.round(value))}
+                      maximumValue={1}
+                      step={0.05}
+                      value={t.volume}
+                      onSlidingComplete={(value) => updateThreshold(i, 'volume', value)}
                       minimumTrackTintColor="#00d9ff"
                       maximumTrackTintColor="#333"
                       thumbTintColor="#00d9ff"
                     />
                   </View>
-                  <Text style={styles.thresholdSpeed}>{t.speed} mph</Text>
+                  <Text style={styles.thresholdVolume}>{Math.round(t.volume * 100)}%</Text>
                   <Text style={styles.thresholdLabel}>{t.label}</Text>
                 </View>
               ))}
@@ -504,46 +495,51 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   thresholdScrollView: {
-    maxHeight: 280,
+    maxHeight: 340,
   },
   thresholdScrollContent: {
     paddingHorizontal: 8,
-    gap: 12,
+    gap: 6,
   },
   thresholdCard: {
     backgroundColor: '#252542',
     borderRadius: 16,
-    padding: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
     alignItems: 'center',
-    width: 80,
-    height: 240,
+    justifyContent: 'space-between',
+    width: 90,
+    height: 350,
   },
   thresholdVolume: {
     color: '#00d9ff',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 8,
   },
   sliderWrapper: {
-    height: 120,
-    width: 40,
+    flex: 1,
+    width: 90,
     justifyContent: 'center',
     alignItems: 'center',
+    marginVertical: 10,
   },
   verticalSlider: {
-    width: 120,
+    width: 180, // Visual height: 180 * 1.4 = 252
     height: 40,
-    transform: [{ rotate: '-90deg' }],
+    transform: [
+      { rotate: '-90deg' },
+      { scaleX: 1.4 },
+      { scaleY: 1.4 }
+    ],
   },
   thresholdSpeed: {
     color: '#fff',
-    fontSize: 12,
-    marginTop: 8,
+    fontSize: 11,
+    fontWeight: '500',
   },
   thresholdLabel: {
     color: '#888',
     fontSize: 10,
-    marginTop: 4,
     textAlign: 'center',
   },
   modalButtons: {
